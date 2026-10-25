@@ -1,0 +1,32 @@
+{
+  "version": 1,
+  "name": "presenter-video-pipeline",
+  "description": "Generic HeyGen + Remotion presenter-video pipeline. Recipients fill their own local persona settings.",
+  "paths": {
+    "studio": "video-studio",
+    "videos": "jobs",
+    "personas": ".agents/skills/presenter-video-pipeline/personas",
+    "lanes": ".agents/skills/presenter-video-pipeline/lanes"
+  },
+  "fps": 30,
+  "segment_gap_seconds": 0.25,
+  "max_seconds": 120,
+  "segment_warn_seconds": 45,
+  "screen_segment_warn_seconds": 60,
+  "hook_max_words": 12,
+  "max_presenter_share": 0.7,
+  "target_presenter_share": 0.5,
+  "words_per_second": 3.0,
+  "tts": {
+    "price_per_1000_chars": null,
+    "max_chars_per_request": 300,
+    "chunk_gap_seconds": 0.25
+  },
+  "heygen": {
+    "mcp_url": "https://mcp.heygen.com/mcp/v1/",
+    "credits_per_minute": null,
+    "warn_below_credits": null,
+    "monthly_credits": null,
+    "approval_required_before_billable": true
+  }
+}

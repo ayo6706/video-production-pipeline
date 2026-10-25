@@ -1,0 +1,35 @@
+{
+  "id": "default",
+  "display_name": "Presenter",
+  "avatar": {
+    "heygen_avatar_look_id": "",
+    "note": "Set to a HeyGen avatar look ID you own or are authorized to use. Leave blank until configured."
+  },
+  "voice": {
+    "provider": "heygen",
+    "fal": {
+      "model": "fal-ai/chatterbox",
+      "reference_audio": "voice/reference.wav",
+      "reference_audio_url": "",
+      "language": "english",
+      "exaggeration": 0.5,
+      "temperature": 0.7,
+      "cfg_scale": 0.5,
+      "seed": null
+    },
+    "heygen_voice_id": "",
+    "pronunciations": {},
+    "note": "Configure only a voice you own or are authorized to use. For HeyGen, set voice.heygen_voice_id. For FAL, place your reference clip at voice/reference.wav or set reference_audio_url and FAL_KEY."
+  },
+  "brand": {
+    "bg": "#111827",
+    "fg": "#F9FAFB",
+    "accent": "#3B82F6",
+    "muted": "#9CA3AF",
+    "panel": "#1F2937",
+    "font": "Arial, sans-serif",
+    "show_name": false,
+    "handle": ""
+  },
+  "note": "Copy this file to personas/<your-id>/persona.json and fill in your own avatar/voice IDs. Never commit real IDs, API keys, or credentials. This template is intentionally blank."
+}

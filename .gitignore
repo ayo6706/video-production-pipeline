@@ -1,0 +1,32 @@
+# Dependencies and build caches
+node_modules/
+__pycache__/
+*.py[cod]
+.seed/
+
+# Local video jobs can contain scripts, claims, audio and generated assets
+jobs/
+
+# Render outputs and generated props/media
+out/
+public/jobs/
+video-studio/out/
+video-studio/jobs/
+video-studio/public/jobs/
+video-studio/node_modules/
+
+# Credentials and secrets (never commit)
+.env
+.env.*
+*.env
+secrets/
+
+# Local persona directories and custom content lanes
+.agents/skills/presenter-video-pipeline/personas/*/
+!.agents/skills/presenter-video-pipeline/personas/persona.template.json
+.agents/skills/presenter-video-pipeline/lanes/*
+!.agents/skills/presenter-video-pipeline/lanes/lane.template.md
+
+# Voice samples and avatar source images (user-owned media)
+**/voice/**
+**/avatar/
