@@ -1,0 +1,18 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=1080, height=1920" />
+    <title>Synthetic process — HyperFrames example</title>
+    <style>
+      html, body { margin: 0; width: 1080px; height: 1920px; background: #10191d; }
+      #root { position: relative; width: 1080px; height: 1920px; overflow: hidden; }
+    </style>
+  </head>
+  <body>
+    <div id="root" data-composition-id="main" data-start="0" data-duration="6" data-width="1080" data-height="1920" data-no-timeline>
+      <div id="signal" data-composition-id="signal" data-composition-src="compositions/frames/signal.html" data-start="0" data-duration="3" data-track-index="1" data-width="1080" data-height="1920"></div>
+      <div id="flow" data-composition-id="flow" data-composition-src="compositions/frames/flow.html" data-start="3" data-duration="3" data-track-index="1" data-width="1080" data-height="1920"></div>
+    </div>
+  </body>
+</html>

@@ -43,6 +43,15 @@ class NewVideoTests(unittest.TestCase):
             plan = json.loads((job / "segments.json").read_text(encoding="utf-8"))
             config = _common.load_config()
             self.assertEqual(plan["source"], f"{config['paths']['lanes']}/sample.md")
+            self.assertEqual(plan["engine"], "hyperframes")
+            self.assertEqual(plan["claims"], [])
+            storyboard = (job / "STORYBOARD.md").read_text(encoding="utf-8")
+            self.assertIn("format: 1080x1920", storyboard)
+            self.assertIn("## Frame 01 — Hook", storyboard)
+            self.assertIn("status: outline", storyboard)
+            root_html = (job / "index.html").read_text(encoding="utf-8")
+            self.assertIn("data-composition-src=\"compositions/frames/hook.html\"", root_html)
+            self.assertIn("HYPERFRAMES_NARRATION_AUDIO", root_html)
         finally:
             shutil.rmtree(job, ignore_errors=True)
 

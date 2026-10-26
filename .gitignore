@@ -9,6 +9,7 @@ jobs/
 
 # Render outputs and generated props/media
 out/
+.hyperframes/
 public/jobs/
 video-studio/out/
 video-studio/jobs/

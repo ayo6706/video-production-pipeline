@@ -1,14 +1,10 @@
-"""Render a video job with Remotion in 16:9, 9:16 or both.
+"""Render a HyperFrames or Remotion video job.
 
 Usage:
-  python render.py <job> [--format landscape|portrait|both] [--preview] [--allow-missing] [--keep] [--props-only]
+  python render.py <job> [--engine hyperframes|remotion] [--format portrait|landscape|both] [--preview] [--approved]
 
-  --preview        half resolution, faster, for checking layout
-  --allow-missing  render placeholders where presenter clips are missing (before HeyGen)
-  --keep           keep the copied assets in video-studio/public/jobs/<slug>
-  --props-only     write the props files and stop (no render)
-
-Outputs: <job>/out/<slug>-16x9.mp4 and/or <slug>-9x16.mp4
+HyperFrames uses the dimensions in STORYBOARD.md and requires --approved for final renders.
+Legacy Remotion jobs retain their existing presenter and audio pipeline.
 """
 import argparse
 import json
@@ -21,6 +17,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from _common import (ROOT, load_config, load_manifest, load_persona, load_plan,  # noqa: E402
                      resolve_job, save_json, text_hash)
+from hyperframes_render import render_job as render_hyperframes_job  # noqa: E402
 
 COMPS = {"landscape": ("Landscape", "16x9"), "portrait": ("Portrait", "9x16")}
 
@@ -28,15 +25,34 @@ COMPS = {"landscape": ("Landscape", "16x9"), "portrait": ("Portrait", "9x16")}
 def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("job")
-    ap.add_argument("--format", default="both", choices=["landscape", "portrait", "both"])
+    ap.add_argument("--engine", choices=["hyperframes", "remotion"])
+    ap.add_argument("--format", default=None, choices=["landscape", "portrait", "both"])
     ap.add_argument("--preview", action="store_true")
+    ap.add_argument("--approved", action="store_true", help="confirm that the preview and review frames were inspected")
     ap.add_argument("--allow-missing", action="store_true")
     ap.add_argument("--keep", action="store_true")
     ap.add_argument("--props-only", action="store_true")
     a = ap.parse_args()
 
     job = resolve_job(a.job)
-    plan, cfg, manifest = load_plan(job), load_config(), load_manifest(job)
+    plan = load_plan(job)
+    engine = a.engine or plan.get("engine", "remotion")
+    if engine == "hyperframes":
+        incompatible = [flag for flag, enabled in (("--allow-missing", a.allow_missing), ("--keep", a.keep), ("--props-only", a.props_only)) if enabled]
+        if incompatible:
+            print(f"HyperFrames does not support Remotion-only option(s): {', '.join(incompatible)}")
+            return 2
+        return render_hyperframes_job(
+            job, preview=a.preview, approved=a.approved, format_override=a.format,
+        )
+    if engine != "remotion":
+        print(f"Unknown engine {engine!r}; choose 'hyperframes' or 'remotion'.")
+        return 2
+    if a.approved:
+        print("--approved is only used for HyperFrames final renders.")
+        return 2
+
+    cfg, manifest = load_config(), load_manifest(job)
     persona = load_persona(plan["persona"])
     voice = persona["voice"]
     prov = voice.get("provider")
@@ -119,7 +135,7 @@ def main() -> int:
         "segments": segs,
     }
 
-    formats = ["landscape", "portrait"] if a.format == "both" else [a.format]
+    formats = ["landscape", "portrait"] if a.format in (None, "both") else [a.format]
     props_files = {}
     for fmt in formats:
         pf = studio / "jobs" / f"{slug}-{fmt}.props.json"

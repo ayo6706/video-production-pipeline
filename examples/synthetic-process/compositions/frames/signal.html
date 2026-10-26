@@ -1,0 +1,39 @@
+<template id="signal-template">
+  <style>
+    [data-composition-id="signal"] {
+      position: absolute; inset: 0; width: 1080px; height: 1920px; overflow: hidden;
+      color: #f3f5ec; background: #10191d; font-family: Arial, sans-serif;
+      background-image: radial-gradient(ellipse at 52% 47%, rgba(42, 96, 91, .25), transparent 54%),
+        linear-gradient(rgba(195, 218, 200, .035) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(195, 218, 200, .035) 1px, transparent 1px);
+      background-size: auto, 72px 72px, 72px 72px;
+    }
+    [data-composition-id="signal"] .clip { position: absolute; box-sizing: border-box; }
+    [data-composition-id="signal"] .eyebrow { left: 86px; top: 112px; color: #9abcb2; font: 700 25px/1 Arial, sans-serif; letter-spacing: .16em; }
+    [data-composition-id="signal"] .headline { left: 82px; top: 270px; width: 910px; font-size: 79px; line-height: 1.02; letter-spacing: -.045em; font-weight: 700; }
+    [data-composition-id="signal"] .headline em { color: #f0b45f; font-style: normal; }
+    [data-composition-id="signal"] .subline { left: 88px; top: 500px; color: #bdcbc3; font-size: 31px; line-height: 1.35; }
+    [data-composition-id="signal"] .rail { left: 104px; top: 990px; width: 872px; height: 8px; border-radius: 8px; background: #34474a; }
+    [data-composition-id="signal"] .gate { left: 520px; top: 900px; width: 30px; height: 190px; border: 3px solid #f0b45f; border-radius: 20px; box-shadow: 0 0 28px rgba(240,180,95,.16); }
+    [data-composition-id="signal"] .gate::after { content: ""; position: absolute; inset: 18px 7px; border-radius: 8px; background: #f0b45f; opacity: .3; }
+    [data-composition-id="signal"] .token { left: 126px; top: 962px; width: 66px; height: 66px; border-radius: 18px; background: #67d2c0; box-shadow: 0 0 32px rgba(103,210,192,.45); animation: signal-travel 1.65s cubic-bezier(.55,.05,.25,1) both; }
+    [data-composition-id="signal"] .token::after { content: ""; position: absolute; inset: 18px; border: 3px solid #102522; border-radius: 6px; }
+    [data-composition-id="signal"] .stage-label { top: 1120px; color: #dbe4db; font-size: 25px; font-weight: 700; letter-spacing: .12em; }
+    [data-composition-id="signal"] .queued { left: 104px; }
+    [data-composition-id="signal"] .checked { right: 104px; color: #67d2c0; opacity: 0; animation: label-reveal .35s 1.75s ease-out both; }
+    [data-composition-id="signal"] .footnote { left: 88px; bottom: 126px; color: #829992; font-size: 23px; letter-spacing: .06em; }
+    @keyframes signal-travel { from { transform: translateX(0); } to { transform: translateX(690px); } }
+    @keyframes label-reveal { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: translateY(0); } }
+  </style>
+  <div id="signal-stage" data-composition-id="signal" data-width="1080" data-height="1920" data-duration="3" data-no-timeline>
+    <div id="signal-eyebrow" class="clip eyebrow" data-start="0" data-duration="3" data-track-index="1">FIELD NOTE / SYNTHETIC DEMO</div>
+    <div id="signal-headline" class="clip headline" data-start="0" data-duration="3" data-track-index="1">Make the check<br />part of the <em>flow.</em></div>
+    <div id="signal-subline" class="clip subline" data-start="0" data-duration="3" data-track-index="1">One work item moves through a visible quality gate.</div>
+    <div id="signal-rail" class="clip rail" data-start="0" data-duration="3" data-track-index="1"></div>
+    <div id="signal-gate" class="clip gate" data-start="0" data-duration="3" data-track-index="2"></div>
+    <div id="signal-token" class="clip token" data-start="0" data-duration="3" data-track-index="3"></div>
+    <div id="signal-queued" class="clip stage-label queued" data-start="0" data-duration="3" data-track-index="1">QUEUED</div>
+    <div id="signal-checked" class="clip stage-label checked" data-start="0" data-duration="3" data-track-index="1">CHECKED</div>
+    <div id="signal-footnote" class="clip footnote" data-start="0" data-duration="3" data-track-index="1">A small, observable step. No hidden handoff.</div>
+  </div>
+</template>

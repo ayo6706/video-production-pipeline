@@ -1,0 +1,47 @@
+<template id="flow-template">
+  <style>
+    [data-composition-id="flow"] {
+      position: absolute; inset: 0; width: 1080px; height: 1920px; overflow: hidden;
+      color: #f3f5ec; background: #10191d; font-family: Arial, sans-serif;
+      background-image: radial-gradient(ellipse at 50% 55%, rgba(42, 96, 91, .24), transparent 55%),
+        linear-gradient(rgba(195, 218, 200, .035) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(195, 218, 200, .035) 1px, transparent 1px);
+      background-size: auto, 72px 72px, 72px 72px;
+    }
+    [data-composition-id="flow"] .clip { position: absolute; box-sizing: border-box; }
+    [data-composition-id="flow"] .eyebrow { left: 86px; top: 112px; color: #9abcb2; font: 700 25px/1 Arial, sans-serif; letter-spacing: .16em; }
+    [data-composition-id="flow"] .headline { left: 82px; top: 265px; width: 900px; font-size: 76px; line-height: 1.03; letter-spacing: -.045em; font-weight: 700; }
+    [data-composition-id="flow"] .headline em { color: #f0b45f; font-style: normal; }
+    [data-composition-id="flow"] .subline { left: 88px; top: 490px; color: #bdcbc3; font-size: 30px; line-height: 1.35; }
+    [data-composition-id="flow"] .spine { left: 188px; top: 650px; width: 4px; height: 635px; background: #34474a; }
+    [data-composition-id="flow"] .step { left: 270px; width: 650px; height: 156px; border: 1px solid #405557; border-radius: 14px; background: rgba(21, 38, 41, .9); display: flex; align-items: center; padding: 0 42px; gap: 30px; }
+    [data-composition-id="flow"] .step-one { top: 620px; }
+    [data-composition-id="flow"] .step-two { top: 940px; }
+    [data-composition-id="flow"] .step-three { top: 1260px; }
+    [data-composition-id="flow"] .step-index { width: 58px; height: 58px; display: grid; place-items: center; border: 2px solid #6a8984; border-radius: 50%; color: #a9c8be; font-size: 23px; font-weight: 700; }
+    [data-composition-id="flow"] .step-title { color: #e9eee6; font-size: 34px; font-weight: 700; letter-spacing: .02em; }
+    [data-composition-id="flow"] .step-note { margin-top: 8px; color: #92a69e; font-size: 23px; }
+    [data-composition-id="flow"] .marker { left: 158px; top: 665px; width: 64px; height: 64px; border-radius: 50%; background: #67d2c0; border: 5px solid #10191d; box-shadow: 0 0 28px rgba(103,210,192,.5); animation: marker-travel 1.8s cubic-bezier(.45,.05,.25,1) both; }
+    [data-composition-id="flow"] .marker::after { content: ""; position: absolute; inset: 16px; border-radius: 50%; background: #102522; }
+    [data-composition-id="flow"] .step-one { animation: step-lit .45s .05s ease-out both; }
+    [data-composition-id="flow"] .step-two { animation: step-lit .45s .65s ease-out both; }
+    [data-composition-id="flow"] .step-three { animation: step-lit .45s 1.25s ease-out both; }
+    [data-composition-id="flow"] .ready { left: 270px; top: 1515px; width: 650px; color: #67d2c0; font: 700 27px/1 Arial, sans-serif; letter-spacing: .13em; opacity: 0; animation: label-reveal .35s 1.95s ease-out both; }
+    [data-composition-id="flow"] .footnote { left: 88px; bottom: 126px; color: #829992; font-size: 23px; letter-spacing: .06em; }
+    @keyframes marker-travel { from { transform: translateY(0); } to { transform: translateY(590px); } }
+    @keyframes step-lit { from { border-color: #405557; background: rgba(21,38,41,.9); } to { border-color: #67d2c0; background: rgba(26,56,55,.95); } }
+    @keyframes label-reveal { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: translateY(0); } }
+  </style>
+  <div id="flow-stage" data-composition-id="flow" data-width="1080" data-height="1920" data-duration="3" data-no-timeline>
+    <div id="flow-eyebrow" class="clip eyebrow" data-start="0" data-duration="3" data-track-index="1">FIELD NOTE / SYNTHETIC DEMO</div>
+    <div id="flow-headline" class="clip headline" data-start="0" data-duration="3" data-track-index="1">Three steps.<br />One clear <em>handoff.</em></div>
+    <div id="flow-subline" class="clip subline" data-start="0" data-duration="3" data-track-index="1">Each stage is visible, named, and connected.</div>
+    <div id="flow-spine" class="clip spine" data-start="0" data-duration="3" data-track-index="1"></div>
+    <div id="step-intake" class="clip step step-one" data-start="0" data-duration="3" data-track-index="2"><span class="step-index">A</span><span><span class="step-title">INTAKE</span><span class="step-note">Receive the work item</span></span></div>
+    <div id="step-verify" class="clip step step-two" data-start="0" data-duration="3" data-track-index="2"><span class="step-index">B</span><span><span class="step-title">VERIFY</span><span class="step-note">Check the required detail</span></span></div>
+    <div id="step-deliver" class="clip step step-three" data-start="0" data-duration="3" data-track-index="2"><span class="step-index">C</span><span><span class="step-title">DELIVER</span><span class="step-note">Make the next action clear</span></span></div>
+    <div id="flow-marker" class="clip marker" data-start="0" data-duration="3" data-track-index="3"></div>
+    <div id="flow-ready" class="clip ready" data-start="0" data-duration="3" data-track-index="2">READY FOR HANDOFF</div>
+    <div id="flow-footnote" class="clip footnote" data-start="0" data-duration="3" data-track-index="1">A synthetic composition with locally authored motion.</div>
+  </div>
+</template>
