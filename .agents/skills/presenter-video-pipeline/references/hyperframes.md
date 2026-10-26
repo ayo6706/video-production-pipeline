@@ -21,6 +21,8 @@ jobs/<slug>/
 
 Use one root element with `data-composition-id="main"`, `data-start="0"`, `data-duration`, `data-width`, `data-height`, and `data-no-timeline`. Mount each storyboard frame with a unique `id`, `data-composition-id`, `data-composition-src`, `data-start`, `data-duration`, and matching canvas dimensions. Visual mounts typically use track index `1`; audio uses track index `0`.
 
+For a root or subcomposition mount driven by CSS/WAAPI rather than a registered GSAP timeline, also set `data-no-timeline` on that mount. Without it, HyperFrames waits for `window.__timelines[id]` and strict rendering can fail on the readiness timeout.
+
 The narration insertion point is exactly one comment inside the root element:
 
 ```html

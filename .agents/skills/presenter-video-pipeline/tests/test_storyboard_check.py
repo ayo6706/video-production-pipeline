@@ -1,4 +1,5 @@
 import json
+import re
 import sys
 import tempfile
 import unittest
@@ -212,6 +213,14 @@ class StoryboardCheckTests(unittest.TestCase):
         errors = validate_storyboard(self.job, require_ready=True)
         self.assertTrue(any("data-start" in error for error in errors), errors)
 
+    def test_synthetic_example_marks_css_motion_mounts_no_timeline(self):
+        html = (ROOT / "examples" / "synthetic-process" / "index.html").read_text(encoding="utf-8")
+        for frame_id in ("signal", "flow"):
+            match = re.search(rf'<div id="{frame_id}"(?P<attrs>[^>]*)>', html)
+            if match is None:
+                self.fail(f"missing synthetic frame mount {frame_id}")
+            self.assertIn("data-no-timeline", match.group("attrs").split())
+
     def test_render_ready_rejects_outline_frames(self):
         self.storyboard_path.write_text(
             VALID_STORYBOARD.replace("status: built", "status: outline", 1),
@@ -219,7 +228,6 @@ class StoryboardCheckTests(unittest.TestCase):
         )
         errors = validate_storyboard(self.job, require_ready=True)
         self.assertTrue(any("outline" in error.lower() for error in errors), errors)
-
 
 if __name__ == "__main__":
     unittest.main()
