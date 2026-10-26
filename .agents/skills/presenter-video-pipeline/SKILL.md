@@ -14,6 +14,7 @@ examples, assets, or voice.
   references/                               # generic workflow references
     voice.md                                # voice/TTS providers and HeyGen narration flow
     heygen.md                               # HeyGen MCP setup, avatar/voice, presenter video flow
+    content-visual-planning.md              # evidence-led storytelling and visual beat planning
     segment-plan.md                         # segments.json, claims, source_ref citations
     rendering.md                            # Remotion render flow and presenter/narration mixing
     qa-disclosure.md                        # final QA checklist, disclosure and rights reminders
@@ -65,6 +66,12 @@ Fill your local persona settings:
 4. Adjust `brand` colors/display name/handle to neutral values you choose.
 
 Never commit `persona.json` with real IDs — it is gitignored and stays local.
+
+### Plan the story and visuals before scaffolding
+
+Before creating a job, use `references/content-visual-planning.md` to define one viewer problem, verify the factual claims, draft the spoken story in the configured persona's local voice, and plan a visual beat for each narration line. For case studies, keep the focus on what the system does, what work changed, and the reported outcome; label estimates and preserve the source's qualifications. Keep persona-specific voice notes and examples local rather than embedding them in this portable skill.
+
+The current Remotion starter supports only the scene kinds listed in `references/segment-plan.md`. Do not add unsupported `beats`, `shots`, reaction, diagram, or other fields to `segments.json` unless the validator and renderer are updated too. If a visual idea is not supported, use an existing scene kind honestly or flag it as a future code change.
 
 ### 3. Scaffold a new video job
 
@@ -123,6 +130,7 @@ See `.agents/skills/presenter-video-pipeline/references/`:
 
 - `voice.md` — voice/TTS providers and the HeyGen narration flow
 - `heygen.md` — HeyGen MCP setup, avatar/voice, presenter video flow
+- `content-visual-planning.md` — evidence-led storytelling and visual beat planning
 - `segment-plan.md` — segments.json, claims, source_ref citations, validation
 - `rendering.md` — Remotion render flow and presenter/narration mixing
 - `qa-disclosure.md` — final QA checklist, disclosure and rights reminders

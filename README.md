@@ -8,9 +8,10 @@ A reusable, private starter repository for generating presenter videos with your
 .agents/skills/presenter-video-pipeline/   # this skill (pipeline + scripts)
   SKILL.md                                  # full skill reference
   pipeline.config.json                      # configurable paths, timing, credit budget, TTS pricing
-  references/                               # generic workflow references (voice, HeyGen, segment plan, rendering, QA/disclosure)
+  references/                               # generic workflow references (content/visual planning, voice, HeyGen, segment plan, rendering, QA/disclosure)
     voice.md
     heygen.md
+    content-visual-planning.md
     segment-plan.md
     rendering.md
     qa-disclosure.md
@@ -70,8 +71,10 @@ Review `.agents/skills/presenter-video-pipeline/pipeline.config.json` for paths,
 
 ## Real workflow
 
+Before scaffolding, define the story and line-by-line visual beats with `.agents/skills/presenter-video-pipeline/references/content-visual-planning.md`. Keep factual claims tied to source references, mark company-reported estimates as estimates, and use only scene kinds the current validator and renderer support.
+
 1. **Scaffold** a new video job with `new-video.py <slug> --persona <your-id> --lane <lane-id> --title "Your title"`. This creates `jobs/<slug>/segments.json` plus empty `audio/` and `assets/` directories.
-2. **Fill** `segments.json` with your approved narration and scenes. Every factual on-screen claim should carry a `source_ref` traced to a content-lane claim.
+2. **Fill** `segments.json` with your approved narration and scenes. Map every factual claim to the claim ledger; add `source_ref` in scene kinds that support the field.
 3. **Validate** the plan with `segment-check.py jobs/<slug>`.
 4. **Generate narration audio after explicit approval.** For HeyGen, run `python .agents/skills/presenter-video-pipeline/scripts/tts.py jobs/<slug> --todo` to list segments. Confirm the exact text and voice for each `create_speech` call, then save the returned audio under `jobs/<slug>/audio/<id>.mp3`. FAL Chatterbox is optional: set `FAL_KEY` via the OS Environment Variables UI or a secret manager, preview with `tts.py jobs/<slug> --dry-run`, and do not run billable generation while its rate is unknown. Explicitly approve each FAL invocation's segment set and verified cost before generation. For FAL audio, use the supported HeyGen asset-upload flow only with explicit permission; a local file path cannot be used as an avatar video's audio source.
 5. **Import narration.** From the repository root, install `video-studio` dependencies once (`cd video-studio && npm ci`), then return to the repository root and run `python .agents/skills/presenter-video-pipeline/scripts/tts.py jobs/<slug> --import` to convert audio and write the manifest.
@@ -99,6 +102,7 @@ See `.agents/skills/presenter-video-pipeline/references/`:
 
 - `voice.md` — voice/TTS providers and the HeyGen narration flow
 - `heygen.md` — HeyGen MCP setup, avatar/voice, presenter video flow
+- `content-visual-planning.md` — evidence-led storytelling and visual beat planning
 - `segment-plan.md` — segments.json, claims, source_ref citations, validation
 - `rendering.md` — Remotion render flow and presenter/narration mixing
 - `qa-disclosure.md` — final QA checklist, disclosure and rights reminders
@@ -111,6 +115,7 @@ The locked Remotion 4.0.538 packages request Zod 4.5.4, which is affected by GHS
 
 - No credentials, API keys, real avatar/voice IDs, names, handles, or personal brand in committed files.
 - No generated audio/video, voice samples, or avatar source images are committed (see `.gitignore`).
+- Creator-specific voice profiles, private notes, and brand guidance stay local; the portable workflow remains neutral.
 - Each recipient configures only assets and likenesses they own or are authorized to use.
 - Do not generate videos or incur charges as part of setup.
 

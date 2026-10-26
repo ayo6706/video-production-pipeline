@@ -47,6 +47,8 @@ The example is illustrative only; replace the placeholder IDs and copy with your
 
 Supported screen scene kinds and their required fields are defined in `scripts/segment-check.py`: `title`, `stat`, `points`, `quote`, `screenshot`, `clip`, `query`, and `cta`.
 
+For faceless or story-led videos, plan a separate line-by-line visual beat sheet using `references/content-visual-planning.md`. Keep it as a planning note; do not add arbitrary `beats` or `shots` properties to `segments.json` unless the validator and Remotion renderer are changed to support them. Map each factual visual to a supported scene kind and the claim ledger; add `source_ref` where that scene kind supports it. The validator checks selected fields for presence, not whether the evidence supports the claim.
+
 ## Validation
 
 Run:
