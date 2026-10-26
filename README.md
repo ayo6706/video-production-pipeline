@@ -1,122 +1,106 @@
-# HeyGen + Remotion Presenter Video Pipeline
+# HeyGen + HyperFrames Video Production Pipeline (Remotion-compatible)
 
-A reusable, private starter repository for generating presenter videos with your own HeyGen avatar/voice and Remotion rendering. It inherits no personal or third-party profile, content lane, examples, assets, or voice.
+A reusable workflow for evidence-led scripts, independently timed visual storyboards, motion-graphics compositions, review, and export. New jobs use HyperFrames; existing Remotion jobs remain supported.
 
-## Repository layout
+## What it includes
 
-```
-.agents/skills/presenter-video-pipeline/   # this skill (pipeline + scripts)
-  SKILL.md                                  # full skill reference
-  pipeline.config.json                      # configurable paths, timing, credit budget, TTS pricing
-  references/                               # generic workflow references (content/visual planning, voice, HeyGen, segment plan, rendering, QA/disclosure)
-    voice.md
-    heygen.md
-    content-visual-planning.md
-    segment-plan.md
-    rendering.md
-    qa-disclosure.md
-  scripts/                                  # reusable Python scripts (no external deps)
-    _common.py                              # shared helpers
-    new-video.py                            # scaffold a new video job
-    segment-check.py                        # validate a segments plan
-    credit-budget.py                        # HeyGen credit estimate/log/status
-    tts.py                                  # narration (HeyGen via MCP, or FAL Chatterbox)
-    render.py                               # render with Remotion
-  tests/                                    # synthetic tests (no HeyGen, no charges)
-  personas/                                 # local persona templates (blank, gitignored when filled)
-    persona.template.json
-  lanes/                                    # content lane templates
-    lane.template.md
-video-studio/                               # Remotion starter (React + TypeScript)
-README.md                                   # setup and use instructions
-.gitignore                                  # local credentials and generated media are excluded
+- A `segments.json` plan for narration and source-backed claims.
+- A separate `STORYBOARD.md` plan for visual beats that can change independently of narration.
+- A pinned HyperFrames CLI runtime, structural validation, automated checks, review snapshots, and verified renders.
+- An optional HeyGen narration/avatar workflow with explicit approval before paid generation.
+- A Remotion renderer for compatible legacy jobs.
+- Synthetic examples and tests that do not call HeyGen or incur provider charges.
+
+## Requirements
+
+- Python 3.10 or later.
+- Node.js 22.12 or later and npm for HyperFrames. The CLI version is pinned in `tools/hyperframes/package-lock.json`.
+- `ffmpeg` and `ffprobe` for media rendering and output verification.
+- Optional: a HeyGen account with an authorized MCP connection for narration or avatar video.
+- Optional: a FAL account and `FAL_KEY` for the FAL Chatterbox voice provider.
+- Legacy Remotion rendering also uses Node.js and the locked dependencies in `video-studio/`.
+
+## Quick start: HyperFrames
+
+Install the pinned local CLI and create a job:
+
+```bash
+npm ci --ignore-scripts --prefix tools/hyperframes --no-audit --no-fund
+python .agents/skills/presenter-video-pipeline/scripts/new-video.py <slug> \
+  --title "Your title" --format portrait
 ```
 
-## Prerequisites
+Fill in `jobs/<slug>/segments.json` with approved narration and source-backed claim records. Plan each visual beat in `jobs/<slug>/STORYBOARD.md`; give each frame an ID, start, duration, scene action, status, and composition path. The generator creates a root `index.html` with a placeholder hook mount and narration marker: create the matching frame composition and update root mounts to match the finished storyboard. Current narration audio is inserted from the manifest during a temporary render build, without modifying source HTML. Keep voiceover, source references, and on-screen text tied to the specific beat they support.
 
-- Python 3.10+ (the pipeline scripts use the standard library only)
-- Node.js 18+ and npm (for Remotion installation and rendering)
-- A HeyGen account and access to the HeyGen remote MCP server
-- Optional: a FAL account and the `FAL_KEY` environment variable (FAL Chatterbox voice provider)
+Validate the plan and render a preview:
 
-## Setup
-
-### 1. Add the HeyGen remote MCP server (OAuth)
-
-On the agent host, add HeyGen's remote MCP server using OAuth:
-
-```
-hermes mcp add heygen --url https://mcp.heygen.com/mcp/v1/ --auth oauth
+```bash
+python .agents/skills/presenter-video-pipeline/scripts/segment-check.py jobs/<slug>
+python .agents/skills/presenter-video-pipeline/scripts/storyboard_check.py jobs/<slug> --require-ready
+python .agents/skills/presenter-video-pipeline/scripts/render.py jobs/<slug> --preview
 ```
 
-You must then complete authorization on the MCP host when prompted, and reload/restart the agent host so the MCP server is picked up. OAuth is configured on the same host that runs the pipeline scripts. A callback opened on a different computer or in a remote browser may not reach the local callback listener; complete it in the browser on the MCP host or use that MCP client's documented remote callback/forwarding flow. For non-Hermes MCP clients, add `https://mcp.heygen.com/mcp/v1/` as a remote MCP server and use that client's OAuth authorization flow; exact setup and callback handling are client-specific. Never share OAuth callback codes or secrets in chat, and never write credentials to a file.
+Open the review contact sheets listed in `jobs/<slug>/out/hyperframes-review.json`, inspect the preview at phone size, and resolve any QA findings. Then render the delivery file:
 
-### 2. Create or select your own avatar and voice
-
-Choose an avatar look and voice that you own or are authorized to use. Use the HeyGen dashboard or your installed MCP tools (such as `list_avatar_groups`, `list_avatar_looks`, and `list_voices`) to select them. `create_speech` synthesizes the approved text with a selected voice; it does not create an avatar or voice. Create or clone assets only when you have the required rights and consent.
-
-Fill your local persona settings:
-
-1. Copy `.agents/skills/presenter-video-pipeline/personas/persona.template.json` to
-   `.agents/skills/presenter-video-pipeline/personas/<your-id>/persona.json`.
-2. Set `avatar.heygen_avatar_look_id` to your confirmed HeyGen avatar look ID.
-3. Set `voice.heygen_voice_id` to your HeyGen voice ID (HeyGen provider), or configure `voice.fal` with your own reference clip at `voice/reference.wav` and set `FAL_KEY` (FAL provider).
-4. Adjust `brand` colors, display name, and handle to neutral values you choose.
-
-Never commit `persona.json` with real IDs — it is gitignored and stays local. Never put credentials in files or chat.
-
-### 3. Configure the pipeline
-
-Review `.agents/skills/presenter-video-pipeline/pipeline.config.json` for paths, timing limits, and rate settings. HeyGen credit rates, monthly allowance, warning floor, and optional FAL TTS price default to `null` intentionally; enter only values verified for your current plan. The credit tool estimates avatar-video credits only, not `create_speech` usage. Until rates are configured, it will refuse to estimate; do not treat missing estimates as free usage.
-
-## Real workflow
-
-Before scaffolding, define the story and line-by-line visual beats with `.agents/skills/presenter-video-pipeline/references/content-visual-planning.md`. Keep factual claims tied to source references, mark company-reported estimates as estimates, and use only scene kinds the current validator and renderer support.
-
-1. **Scaffold** a new video job with `new-video.py <slug> --persona <your-id> --lane <lane-id> --title "Your title"`. This creates `jobs/<slug>/segments.json` plus empty `audio/` and `assets/` directories.
-2. **Fill** `segments.json` with your approved narration and scenes. Map every factual claim to the claim ledger; add `source_ref` in scene kinds that support the field.
-3. **Validate** the plan with `segment-check.py jobs/<slug>`.
-4. **Generate narration audio after explicit approval.** For HeyGen, run `python .agents/skills/presenter-video-pipeline/scripts/tts.py jobs/<slug> --todo` to list segments. Confirm the exact text and voice for each `create_speech` call, then save the returned audio under `jobs/<slug>/audio/<id>.mp3`. FAL Chatterbox is optional: set `FAL_KEY` via the OS Environment Variables UI or a secret manager, preview with `tts.py jobs/<slug> --dry-run`, and do not run billable generation while its rate is unknown. Explicitly approve each FAL invocation's segment set and verified cost before generation. For FAL audio, use the supported HeyGen asset-upload flow only with explicit permission; a local file path cannot be used as an avatar video's audio source.
-5. **Import narration.** From the repository root, install `video-studio` dependencies once (`cd video-studio && npm ci`), then return to the repository root and run `python .agents/skills/presenter-video-pipeline/scripts/tts.py jobs/<slug> --import` to convert audio and write the manifest.
-6. **Estimate avatar-video credits after narration is complete.** Read the current balance with HeyGen `get_current_user`, then run `python .agents/skills/presenter-video-pipeline/scripts/credit-budget.py estimate jobs/<slug> --remaining <balance>`. The estimator requires a verified `credits_per_minute` rate and covers avatar-video calls only, not speech synthesis. If it blocks, do not treat that as free usage.
-7. **Approve each avatar-video call separately.** Confirm the exact avatar look, narration audio, output settings, and cost implications. Record the balance immediately before the video calls.
-8. **Generate presenter video.** Use the public audio URL returned by HeyGen `create_speech` with the installed `create_video_from_avatar` schema and the confirmed avatar look ID. Save each completed MP4 as `jobs/<slug>/presenter/<id>.mp4`. Poll `get_video` using its returned video ID until complete; never resubmit to check progress. Ask before retrying any failure or timeout.
-9. **Log actual avatar-video use.** After the videos finish, read the current balance and run `python .agents/skills/presenter-video-pipeline/scripts/credit-budget.py log jobs/<slug> --before <balance_before_video> --remaining <balance_after_video>`. Capture the before balance after narration generation so speech usage is not mixed into the video estimate.
-10. **Render** with Remotion: `python .agents/skills/presenter-video-pipeline/scripts/render.py jobs/<slug> [--format landscape|portrait|both] [--preview]`. `render.py` mutes the presenter video and uses the separate narration audio. Outputs go to `jobs/<slug>/out/`.
-
-Inspect the installed HeyGen MCP tool schema before calling tools; this repo does not define tool schemas. Setup and synthetic tests never call HeyGen and never incur charges.
-
-## Render with Remotion
-
-```
-cd video-studio && npm ci
-cd ..  # back to repo root
-python .agents/skills/presenter-video-pipeline/scripts/render.py jobs/<slug> [--format landscape|portrait|both] [--preview]
+```bash
+python .agents/skills/presenter-video-pipeline/scripts/render.py jobs/<slug> --approved
 ```
 
-Outputs go to `jobs/<slug>/out/`. Use `--allow-missing` to render placeholders before HeyGen clips exist. Use `--props-only` to write props without rendering.
+`--approved` is an explicit confirmation that a person inspected the preview and review frames. It does not bypass structural checks or automated QA. Outputs and review artifacts stay under the job's ignored `out/` and `.hyperframes/` directories.
 
-## Generic references
+The renderer does not silently fall back to Remotion. A missing CLI, invalid storyboard, failed HyperFrames check, or unverifiable output blocks the render with a diagnostic.
 
-See `.agents/skills/presenter-video-pipeline/references/`:
+## Story and visual planning
 
-- `voice.md` — voice/TTS providers and the HeyGen narration flow
-- `heygen.md` — HeyGen MCP setup, avatar/voice, presenter video flow
-- `content-visual-planning.md` — evidence-led storytelling and visual beat planning
-- `segment-plan.md` — segments.json, claims, source_ref citations, validation
-- `rendering.md` — Remotion render flow and presenter/narration mixing
-- `qa-disclosure.md` — final QA checklist, disclosure and rights reminders
+Start with one viewer question, then make a claim ledger for factual statements. Keep each claim tied to a source or approved asset; preserve attribution, dates, units, scope, and uncertainty. Label illustrative examples as illustrative.
 
-## Dependency security note
+Plan the spoken story and visual sequence separately. A narration paragraph can continue across multiple shots. Use product captures, relevant footage, diagrams, animated typography, and purposeful motion graphics when they clarify the story. Do not default to a stack of title cards or unrelated stock footage. Reference material may guide abstract choices such as pacing, framing, and type hierarchy; do not copy distinctive scripts, jokes, compositions, identity, or assets.
 
-The locked Remotion 4.0.538 packages request Zod 4.5.4, which is affected by GHSA-mrhx-c7xc-m3w5. `video-studio/package.json` overrides Zod to 4.6.7, the patched release. Remotion warns that its expected and installed Zod versions differ. Typecheck, composition listing, and a synthetic render were verified with this override, but it remains an upstream compatibility workaround. Recheck after Remotion updates its Zod pin; keep or remove the override only after confirming the resolved version is patched and rerunning the audit and render checks.
+For frame format, composition structure, and animation behavior, see [`references/hyperframes.md`](.agents/skills/presenter-video-pipeline/references/hyperframes.md) and the [HyperFrames CLI guide](https://hyperframes.heygen.com/developers/cli).
 
-## Privacy
+## Optional narration and avatar workflow
 
-- No credentials, API keys, real avatar/voice IDs, names, handles, or personal brand in committed files.
-- No generated audio/video, voice samples, or avatar source images are committed (see `.gitignore`).
-- Creator-specific voice profiles, private notes, and brand guidance stay local; the portable workflow remains neutral.
-- Each recipient configures only assets and likenesses they own or are authorized to use.
-- Do not generate videos or incur charges as part of setup.
+The project can use HeyGen `create_speech` for narration and `create_video_from_avatar` for an authorized presenter. It can also use FAL Chatterbox where configured. Provider access and generated media are optional; local planning, validation, tests, and synthetic examples do not call these services.
 
-See `.agents/skills/presenter-video-pipeline/SKILL.md` for the full skill reference.
+1. Configure your own local persona by copying `.agents/skills/presenter-video-pipeline/personas/persona.template.json` to `.agents/skills/presenter-video-pipeline/personas/<your-id>/persona.json`. Use only voice/avatar assets you own or are authorized to use. Persona directories with real settings are gitignored.
+2. Review the narration and selected voice. Run `tts.py jobs/<slug> --todo` to inspect the exact text before generation.
+3. Obtain explicit approval for each billable call, including the exact text, voice/avatar, and scope. Never retry a failed or timed-out paid call without approval.
+4. Keep generated audio, avatar footage, source media, and credentials out of commits. Use the HeyGen tool schema and supported upload flow for the active account.
+
+For FAL, keep `FAL_KEY` in a secure environment or secret manager, not in chat or a committed file. A dry run with an unknown rate blocks billable generation; configure only a verified current rate.
+
+## Remotion compatibility
+
+Jobs created before the HyperFrames path remain renderable through the existing Remotion renderer. Jobs without an `engine` field default to Remotion for compatibility. To select the legacy path explicitly:
+
+```bash
+npm ci --ignore-scripts --prefix video-studio --no-audit --no-fund
+python .agents/skills/presenter-video-pipeline/scripts/render.py jobs/<slug> \
+  --engine remotion --format portrait
+```
+
+Remotion consumes the supported `segments.json` scene schema and narration manifest; it does not consume the independent HyperFrames storyboard. HyperFrames-only compositions are not converted automatically.
+
+## Development checks
+
+```bash
+python3 -m unittest discover -s .agents/skills/presenter-video-pipeline/tests -v
+npm ci --ignore-scripts --prefix video-studio --no-audit --no-fund
+npm --prefix video-studio run typecheck
+npm ci --ignore-scripts --prefix tools/hyperframes --no-audit --no-fund
+npm audit --prefix tools/hyperframes
+npm audit --prefix video-studio
+```
+
+The GitHub Actions workflow runs a synthetic HyperFrames CLI render with system Chromium and FFmpeg in addition to the unit tests. A successful run of that smoke render is a release gate; mocked runner tests alone do not verify the browser/render environment.
+
+## Privacy and rights
+
+- Do not commit API keys, OAuth tokens, private account data, or real avatar/voice IDs.
+- Do not commit generated audio/video, voice samples, avatar source images, or private working jobs.
+- Use only assets and likenesses you own or have permission to use; check third-party license and attribution requirements.
+- Keep source citations in production notes, captions, descriptions, or an end card rather than spoken copy unless requested.
+
+## License
+
+MIT. See [`LICENSE`](LICENSE).

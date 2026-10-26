@@ -1,0 +1,12 @@
+{
+  "name": "heygen-hyperframes-remotion-pipeline-runtime",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Pinned local runtime for the HyperFrames-first video pipeline",
+  "engines": {
+    "node": ">=22.12.0"
+  },
+  "devDependencies": {
+    "hyperframes": "0.8.201"
+  }
+}

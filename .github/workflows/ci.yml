@@ -1,0 +1,79 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  quality-and-smoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22.12.0
+          cache: npm
+          cache-dependency-path: |
+            tools/hyperframes/package-lock.json
+            video-studio/package-lock.json
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install FFmpeg
+        run: |
+          sudo apt-get update
+          sudo apt-get install --yes ffmpeg
+
+      - name: Install HyperFrames dependencies
+        run: npm ci --ignore-scripts --no-audit --no-fund
+        working-directory: tools/hyperframes
+
+      - name: Audit HyperFrames dependencies
+        run: npm audit --audit-level=high
+        working-directory: tools/hyperframes
+
+      - name: Install Remotion dependencies
+        run: npm ci --ignore-scripts --no-audit --no-fund
+        working-directory: video-studio
+
+      - name: Audit Remotion dependencies
+        run: npm audit --audit-level=high
+        working-directory: video-studio
+
+      - name: Type-check Remotion studio
+        run: npm run typecheck
+        working-directory: video-studio
+
+      - name: Run Python tests
+        run: python -m unittest discover -s .agents/skills/presenter-video-pipeline/tests -v
+
+      - name: Validate synthetic storyboard
+        run: python .agents/skills/presenter-video-pipeline/scripts/storyboard_check.py examples/synthetic-process --require-ready
+
+      - name: Verify system browser
+        run: |
+          browser="$(command -v google-chrome || command -v chromium || command -v chromium-browser || true)"
+          if [ -z "$browser" ]; then
+            echo "A system Chrome/Chromium browser is required for the HyperFrames smoke render." >&2
+            exit 1
+          fi
+          echo "HYPERFRAMES_BROWSER_PATH=$browser" >> "$GITHUB_ENV"
+
+      - name: Render synthetic HyperFrames preview
+        env:
+          HYPERFRAMES_NO_UPDATE_CHECK: "1"
+          HYPERFRAMES_NO_TELEMETRY: "1"
+          HYPERFRAMES_SKIP_SKILLS: "1"
+          CI: "1"
+        run: python .agents/skills/presenter-video-pipeline/scripts/render.py examples/synthetic-process --preview

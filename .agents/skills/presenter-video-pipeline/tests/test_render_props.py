@@ -17,6 +17,41 @@ from _common import text_hash, write_wav  # noqa: E402
 
 
 class RenderPropsTests(unittest.TestCase):
+    def test_hyperframes_job_dispatches_without_a_persona(self):
+        token = uuid.uuid4().hex[:10]
+        job = ROOT / "jobs" / f"synthetic-hf-{token}"
+        job.mkdir(parents=True)
+        try:
+            (job / "segments.json").write_text(json.dumps({
+                "engine": "hyperframes", "slug": job.name, "title": "Synthetic",
+                "segments": [], "claims": [],
+            }), encoding="utf-8")
+            result = subprocess.run(
+                [sys.executable, str(SCRIPTS / "render.py"), str(job), "--preview"],
+                cwd=ROOT, capture_output=True, text=True, check=False,
+            )
+            self.assertEqual(result.returncode, 1, result.stdout + result.stderr)
+            self.assertIn("Missing STORYBOARD.md", result.stdout + result.stderr)
+        finally:
+            shutil.rmtree(job, ignore_errors=True)
+
+    def test_rejects_unknown_render_engine_before_loading_persona(self):
+        token = uuid.uuid4().hex[:10]
+        job = ROOT / "jobs" / f"synthetic-unknown-engine-{token}"
+        job.mkdir(parents=True)
+        try:
+            (job / "segments.json").write_text(json.dumps({
+                "engine": "unknown", "slug": job.name, "segments": [], "claims": [],
+            }), encoding="utf-8")
+            result = subprocess.run(
+                [sys.executable, str(SCRIPTS / "render.py"), str(job)],
+                cwd=ROOT, capture_output=True, text=True, check=False,
+            )
+            self.assertEqual(result.returncode, 2, result.stdout + result.stderr)
+            self.assertIn("unknown engine", (result.stdout + result.stderr).lower())
+        finally:
+            shutil.rmtree(job, ignore_errors=True)
+
     def test_props_only_renders_synthetic_job_without_external_services(self):
         token = uuid.uuid4().hex[:10]
         slug = f"synthetic-test-{token}"
