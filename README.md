@@ -6,7 +6,7 @@ A reusable workflow for evidence-led scripts, independently timed visual storybo
 
 - A `segments.json` plan for narration and source-backed claims.
 - A separate `STORYBOARD.md` plan for visual beats that can change independently of narration.
-- A pinned HyperFrames CLI runtime, structural validation, automated checks, review snapshots, and verified renders.
+- A pinned HyperFrames CLI runtime, structural validation, automated checks, and phone-size, hash-bound editorial review packets that gate delivery renders.
 - An optional HeyGen narration/avatar workflow with explicit approval before paid generation.
 - A Remotion renderer for compatible legacy jobs.
 - Synthetic examples and tests that do not call HeyGen or incur provider charges.
@@ -32,21 +32,27 @@ python .agents/skills/presenter-video-pipeline/scripts/new-video.py <slug> \
 
 Fill in `jobs/<slug>/segments.json` with approved narration and source-backed claim records. Plan each visual beat in `jobs/<slug>/STORYBOARD.md`; give each frame an ID, start, duration, scene action, status, and composition path. The generator creates a root `index.html` with a placeholder hook mount and narration marker: create the matching frame composition and update root mounts to match the finished storyboard. Current narration audio is inserted from the manifest during a temporary render build, without modifying source HTML. Keep voiceover, source references, and on-screen text tied to the specific beat they support.
 
-Validate the plan and render a preview:
+Validate the plan and render a preview. Run `segment-check.py` only for narration-bearing jobs; skip it for silent visual-only jobs. Every job should pass the storyboard check:
 
 ```bash
-python .agents/skills/presenter-video-pipeline/scripts/segment-check.py jobs/<slug>
 python .agents/skills/presenter-video-pipeline/scripts/storyboard_check.py jobs/<slug> --require-ready
 python .agents/skills/presenter-video-pipeline/scripts/render.py jobs/<slug> --preview
 ```
 
-Open the review contact sheets listed in `jobs/<slug>/out/hyperframes-review.json`, inspect the preview at phone size, and resolve any QA findings. Then render the delivery file:
+Open `jobs/<slug>/out/editorial-review.html` and inspect the preview at phone size. Watch the entire video; check every frame for caption/source overlap, phone readability, completed actions, and story relevance. Listen end-to-end for audio timing and levels; review visual variety and restrained transitions. Record and verify the checklist:
+
+```bash
+python .agents/skills/presenter-video-pipeline/scripts/editorial_review.py jobs/<slug> --record
+python .agents/skills/presenter-video-pipeline/scripts/editorial_review.py jobs/<slug> --check
+```
+
+The review record binds the preview SHA-256 and a fingerprint of the storyboard, job files, active persona, and pinned pipeline/config inputs. The renderer copies local assets, audio, and compositions into an isolated temporary workspace and verifies the copy; changed inputs invalidate sign-off or cause the in-flight output to be discarded. The workflow assumes the job is not concurrently edited while the workspace is being assembled; it is not an OS-level lock over every job file. Avoid edits during that phase, and render a fresh preview and review after any source changes. The checklist is a human self-attestation: reviewer identity is not authenticated and the local JSON record is editable, so it is not cryptographic proof that playback occurred. The fingerprint does not include installed `node_modules` bytes, OS/browser/FFmpeg runtime versions, or remote resources referenced by composition code. For reproducible review, bundle resources locally and keep the runtime unchanged between preview and delivery. A blocked render does not delete an older delivery file; it leaves that artifact untouched. Missing or failed checks block delivery through the normal workflow:
 
 ```bash
 python .agents/skills/presenter-video-pipeline/scripts/render.py jobs/<slug> --approved
 ```
 
-`--approved` is an explicit confirmation that a person inspected the preview and review frames. It does not bypass structural checks or automated QA. Outputs and review artifacts stay under the job's ignored `out/` and `.hyperframes/` directories.
+This sign-off does not verify factual accuracy, rights, or permission to publish. `--approved` authorizes only the local delivery render; publishing remains a separate decision.
 
 The renderer does not silently fall back to Remotion. A missing CLI, invalid storyboard, failed HyperFrames check, or unverifiable output blocks the render with a diagnostic.
 

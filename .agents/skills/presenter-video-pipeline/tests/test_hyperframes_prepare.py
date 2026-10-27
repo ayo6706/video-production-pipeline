@@ -1,9 +1,11 @@
 import json
 import os
+import shutil
 import sys
 import tempfile
 import unittest
 from pathlib import Path
+from unittest.mock import patch
 
 ROOT = Path(__file__).resolve().parents[4]
 SCRIPTS = ROOT / ".agents" / "skills" / "presenter-video-pipeline" / "scripts"
@@ -62,6 +64,50 @@ class HyperFramesPrepareTests(unittest.TestCase):
         self.assertIn('src="audio/s01.wav" data-start="0" data-duration="1.5"', markup)
         self.assertIn('src="audio/s02.wav" data-start="1.75" data-duration="2"', markup)
         self.assertLess(markup.index("narration-s01"), markup.index("narration-s02"))
+
+    def test_workspace_copies_job_inputs_so_later_source_changes_are_isolated(self):
+        (self.job / "assets").mkdir()
+        (self.job / "assets" / "shape.svg").write_text("<svg>original</svg>", encoding="utf-8")
+        real_assets = self.job / "assets" / "a"
+        real_assets.mkdir()
+        (real_assets / "evidence.svg").write_text("<svg>alias</svg>", encoding="utf-8")
+        os.symlink(real_assets, self.job / "assets" / "z_alias", target_is_directory=True)
+        (self.job / "compositions").mkdir()
+        (self.job / "compositions" / "frame.html").write_text("<div>original</div>", encoding="utf-8")
+        (self.job / "index.html").write_text("<div id='root'></div>", encoding="utf-8")
+        with tempfile.TemporaryDirectory() as workspace_directory:
+            workspace = Path(workspace_directory) / "build"
+            prepare_workspace(self.job, workspace, "")
+            for name in ("assets", "audio", "compositions"):
+                self.assertFalse((workspace / name).is_symlink(), f"{name} must be copied, not linked")
+            alias_copy = workspace / "assets" / "z_alias"
+            self.assertFalse(alias_copy.is_symlink())
+            self.assertEqual((alias_copy / "evidence.svg").read_text(encoding="utf-8"), "<svg>alias</svg>")
+            (self.job / "assets" / "shape.svg").write_text("<svg>changed</svg>", encoding="utf-8")
+            self.assertEqual(
+                (workspace / "assets" / "shape.svg").read_text(encoding="utf-8"),
+                "<svg>original</svg>",
+            )
+
+    def test_workspace_rejects_inputs_changed_during_snapshot_copy(self):
+        source_file = self.job / "audio" / "s01.wav"
+        source_file.write_bytes(b"reviewed audio")
+        (self.job / "index.html").write_text("<div id='root'></div>", encoding="utf-8")
+        original_copy = shutil.copy2
+
+        def mutate_during_copy(source, destination, *args, **kwargs):
+            if Path(source).resolve() == source_file.resolve():
+                source_file.write_bytes(b"unreviewed transient audio")
+                result = original_copy(source, destination, *args, **kwargs)
+                source_file.write_bytes(b"reviewed audio")
+                return result
+            return original_copy(source, destination, *args, **kwargs)
+
+        with tempfile.TemporaryDirectory() as workspace_directory:
+            workspace = Path(workspace_directory) / "build"
+            with patch("hyperframes_prepare.shutil.copy2", side_effect=mutate_during_copy):
+                with self.assertRaisesRegex(ValueError, "changed while copying"):
+                    prepare_workspace(self.job, workspace, "")
 
     def test_rejects_stale_text_hash(self):
         stale = dict(self.manifest)

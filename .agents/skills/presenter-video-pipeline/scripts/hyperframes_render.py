@@ -11,6 +11,13 @@ import uuid
 from _common import ROOT, load_config, load_manifest, load_persona
 from hyperframes_prepare import narration_audio_markup, prepare_workspace
 from storyboard_check import validate_storyboard
+from editorial_review import (
+    create_review_packet,
+    find_preview,
+    render_input_fingerprint,
+    storyboard_frames,
+    validate_review,
+)
 
 
 SECONDS = re.compile(r"^(\d+(?:\.\d+)?)\s*s?$", re.IGNORECASE)
@@ -115,7 +122,7 @@ def render_job(
     cli_path: Path | None = None,
     ffprobe_path: Path | None = None,
 ) -> int:
-    """Render a HyperFrames job; final output requires a human approval flag."""
+    """Render a preview or a human-reviewed HyperFrames delivery."""
     job = Path(job).resolve()
     if not preview and not approved:
         print("Final render blocked: inspect the preview and review frames, then rerun with --approved.")
@@ -163,6 +170,17 @@ def render_job(
     })
     temporary_output: Path | None = None
     try:
+        render_inputs_sha256 = render_input_fingerprint(job)
+        if not preview:
+            review_errors = validate_review(
+                job, find_preview(job), storyboard_frames(job),
+                render_inputs_sha256=render_inputs_sha256,
+            )
+            if review_errors:
+                print("Final render blocked: complete a current editorial review of the preview first.")
+                for error in review_errors:
+                    print(f"  - {error}")
+                return 1
         plan = json.loads((job / "segments.json").read_text(encoding="utf-8"))
         if not isinstance(plan, dict):
             raise ValueError("segments.json must contain an object")
@@ -243,7 +261,15 @@ def render_job(
                 quality = "draft" if preview else "delivery"
                 _run(_cli_command(cli, "render", "--output", str(temporary_output), "--quality", quality, "--no-best-effort"), workspace, env, runner)
                 _verify_media(temporary_output, ffprobe, dimensions, duration, fps, bool(audio_markup), runner, job, env)
+                if render_input_fingerprint(job) != render_inputs_sha256:
+                    raise RuntimeError("Render inputs changed during the render; output was discarded. Rebuild and review a fresh preview.")
                 temporary_output.replace(output)
+                if preview:
+                    packet = create_review_packet(
+                        job, output, storyboard_frames(job),
+                        render_inputs_sha256=render_inputs_sha256,
+                    )
+                    print(f"Editorial review packet: {packet}")
                 print(f"HyperFrames {quality} render verified: {output}")
                 print("Review artifacts: out/hyperframes-lint.json, out/hyperframes-check.json, out/hyperframes-review.json")
                 return 0

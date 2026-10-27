@@ -17,7 +17,10 @@
 
 - [ ] Narration is imported with `tts.py jobs/<slug> --import`.
 - [ ] Presenter video status is polled with `get_video`; in-flight jobs are never resubmitted.
-- [ ] Rendered output in `jobs/<slug>/out/` is watched end-to-end for sync, captions, cuts, cropping, readability, and audio levels.
+- [ ] Open `out/editorial-review.html`, inspect the preview at phone size, and watch/listen to the full video end-to-end.
+- [ ] Complete `editorial_review.py --record` for every frame: captions clear of key content, source readable on phone, action completes and holds, visual supports narration.
+- [ ] Confirm whole-video audio timing/levels, visual variety, and restrained transitions; `editorial_review.py --check` passes for the current preview hash.
+- [ ] Only then render delivery with `render.py --approved`; a changed preview or render-input hash invalidates the prior review record. Byte-identical preview and inputs retain the existing sign-off.
 - [ ] Faceless previews avoid long static text cards and repetitive literal b-roll; the visual changes when the idea changes, and source-page evidence is legible.
 - [ ] Actual avatar-video usage is logged with `credit-budget.py log`.
 - [ ] Titles, captions, claims, rights, and disclosure text are reviewed before distribution.

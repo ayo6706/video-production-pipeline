@@ -42,6 +42,8 @@ Map the result to the current schema: `screenshot`, `clip`, `query`, `stat`, `po
 
 For faceless videos, aim to change the visual about every 1.5–3 seconds when the narration allows it. Keep captions as the only continuous text; keep labels and cards brief. Use close-up examples, real captures, or simple supported scenes instead of a sequence of static presentation slides. A real source page is evidence; a graphic can explain the relationship, but must not replace or alter the evidence.
 
+For screen demonstrations and evidence-heavy shots, reserve a caption band that does not cover the UI or source text. Source evidence must remain legible when the preview is reduced to roughly 360 pixels wide; crop or zoom the content rather than shrinking its text. Let the depicted action complete, then hold the result long enough to read before cutting. Change visuals to clarify a new idea, not merely to add motion; prefer clean cuts or one motivated dissolve over repeated transitions.
+
 The current starter does not implement custom diagram, comparison, reaction, timeline, or animated-chart scene types. Do not write those kinds into `segments.json` or imply they will render. A genuine, licensed reaction clip may use the supported `clip` scene; otherwise omit it or record the missing capability for a separately approved code change. Learn general visual principles from references, but do not reproduce another creator's distinctive wording, jokes, assets, or exact compositions.
 
 ## 5. Review the beat sheet

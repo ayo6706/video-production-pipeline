@@ -1,5 +1,6 @@
 """Prepare narration clips for a temporary HyperFrames composition workspace."""
 from html import escape
+import hashlib
 import json
 import math
 from pathlib import Path, PureWindowsPath
@@ -19,6 +20,54 @@ def _assert_inside_job(job_dir: Path, path: Path, label: str) -> Path:
     except ValueError as exc:
         raise ValueError(f"{label} resolves outside the job") from exc
     return resolved
+
+
+def _copy_directory(job_dir: Path, source: Path, destination: Path, ancestors=frozenset()) -> None:
+    """Materialize a job directory, resolving only safe in-job links and rejecting cycles."""
+    resolved = _assert_inside_job(job_dir, source, "render input directory")
+    if not resolved.is_dir():
+        raise ValueError(f"render input directory is missing: {source}")
+    stat = resolved.stat()
+    identity = (stat.st_dev, stat.st_ino)
+    if identity in ancestors:
+        raise ValueError(f"render input directory contains a symlink cycle: {source}")
+    destination.mkdir(parents=True, exist_ok=True)
+    next_ancestors = ancestors | {identity}
+    for entry in sorted(resolved.iterdir(), key=lambda path: path.name):
+        child = _assert_inside_job(job_dir, entry, f"render input {entry.name}")
+        target = destination / entry.name
+        if child.is_dir():
+            _copy_directory(job_dir, child, target, next_ancestors)
+        elif child.is_file():
+            shutil.copy2(child, target)
+
+
+def _digest_tree(job_dir: Path, source: Path, relative: Path, ancestors, digest) -> None:
+    resolved = _assert_inside_job(job_dir, source, f"render input {relative}")
+    label = relative.as_posix() if relative.parts else "."
+    if resolved.is_dir():
+        stat = resolved.stat()
+        identity = (stat.st_dev, stat.st_ino)
+        if identity in ancestors:
+            raise ValueError(f"render input directory contains a symlink cycle: {source}")
+        digest.update(b"directory\0" + label.encode("utf-8") + b"\0")
+        next_ancestors = ancestors | {identity}
+        for child in sorted(resolved.iterdir(), key=lambda path: path.name):
+            _digest_tree(job_dir, child, relative / child.name, next_ancestors, digest)
+        return
+    if not resolved.is_file():
+        raise ValueError(f"unsupported render input type: {source}")
+    digest.update(b"file\0" + label.encode("utf-8") + b"\0")
+    with resolved.open("rb") as handle:
+        for chunk in iter(lambda: handle.read(1024 * 1024), b""):
+            digest.update(chunk)
+    digest.update(b"\0")
+
+
+def _directory_digest(job_dir: Path, source: Path) -> str:
+    digest = hashlib.sha256()
+    _digest_tree(job_dir, source, Path(), frozenset(), digest)
+    return digest.hexdigest()
 
 
 def _audio_path(job_dir: Path, relative: str) -> tuple[Path, str]:
@@ -176,10 +225,11 @@ def prepare_workspace(job_dir: Path, workspace: Path, audio_markup: str) -> None
             continue
         resolved_source = _assert_inside_job(job_dir, source, f"{directory} directory")
         destination = workspace / directory
-        try:
-            destination.symlink_to(resolved_source, target_is_directory=True)
-        except (OSError, NotImplementedError):
-            shutil.copytree(resolved_source, destination, dirs_exist_ok=True)
+        source_digest = _directory_digest(job_dir, resolved_source)
+        _copy_directory(job_dir, resolved_source, destination)
+        snapshot_digest = _directory_digest(workspace, destination)
+        if snapshot_digest != source_digest:
+            raise ValueError(f"render input directory changed while copying: {directory}")
 
     config = job_dir / "hyperframes.json"
     if config.is_file():

@@ -21,6 +21,7 @@ Evidence-led short-form video production with independent visual timing. New edi
     new-video.py                            # scaffold a new HyperFrames or Remotion job
     storyboard_check.py                     # validate visual timing, refs, and composition mounts
     hyperframes_render.py                   # HyperFrames lint/check/review/render adapter
+    editorial_review.py                     # phone-size editorial packet and hash-bound sign-off
     segment-check.py                        # validate narration and claims
     credit-budget.py                        # HeyGen credit estimate/log/status
     tts.py                                  # narration (HeyGen via MCP, or FAL Chatterbox)
@@ -80,8 +81,15 @@ New jobs default to HyperFrames; pass `--engine remotion` for a legacy-compatibl
 
 ### 4. Validate the plan
 
+For narration-bearing jobs, run:
+
 ```
 python .agents/skills/presenter-video-pipeline/scripts/segment-check.py jobs/<slug>
+```
+
+Every job, including silent visual-only jobs, must pass the storyboard check:
+
+```
 python .agents/skills/presenter-video-pipeline/scripts/storyboard_check.py jobs/<slug> --require-ready
 ```
 
@@ -121,11 +129,20 @@ For the default HyperFrames path:
 python .agents/skills/presenter-video-pipeline/scripts/render.py jobs/<slug> --preview
 ```
 
-Inspect the preview at phone size and review the snapshots/reports under `jobs/<slug>/out/` and `jobs/<slug>/.hyperframes/`. Fix visual or timing issues, then explicitly approve the delivery render:
+Open `jobs/<slug>/out/editorial-review.html` and inspect the preview at phone size. Watch the entire video; check every frame for caption/source overlap, phone readability, completed actions, and story relevance. Listen end-to-end for audio timing and levels; review visual variety and restrained transitions. Record the checklist with:
+
+```
+python .agents/skills/presenter-video-pipeline/scripts/editorial_review.py jobs/<slug> --record
+python .agents/skills/presenter-video-pipeline/scripts/editorial_review.py jobs/<slug> --check
+```
+
+The saved sign-off binds both preview SHA-256 and a fingerprint of the storyboard, all job files, active persona, and pinned pipeline/config inputs. HyperFrames renders from an isolated copy of local assets, audio, and compositions and verifies the copy; changed inputs invalidate sign-off or cause the in-flight output to be discarded. The workflow assumes the job is not concurrently edited while the workspace is being assembled; it is not an OS-level lock over every job file. Avoid edits during that phase, and create a fresh preview and review after source changes. The checklist is a human self-attestation: reviewer identity is not authenticated and the local JSON record is editable, not cryptographic proof of viewing. The fingerprint does not cover installed `node_modules` bytes, OS/browser/FFmpeg versions, or remote resources referenced by composition code. Bundle resources locally and keep the runtime unchanged between preview and delivery. A blocked render leaves any older delivery file untouched. Per-video review remains manual; a code/pipeline review is not editorial approval. Failed or missing checks block delivery through the normal workflow:
 
 ```
 python .agents/skills/presenter-video-pipeline/scripts/render.py jobs/<slug> --approved
 ```
+
+This editorial sign-off does not verify factual accuracy, rights, or permission to publish; those remain separate review gates.
 
 For compatible legacy Remotion jobs, install the locked dependencies and select the engine explicitly:
 

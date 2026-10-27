@@ -14,6 +14,13 @@ sys.path.insert(0, str(SCRIPTS))
 
 from hyperframes_render import render_job  # noqa: E402
 from _common import text_hash  # noqa: E402
+from editorial_review import (  # noqa: E402
+    FRAME_CHECKS,
+    GLOBAL_CHECKS,
+    record_review,
+    render_input_fingerprint,
+    storyboard_frames,
+)
 
 
 class HyperFramesRenderTests(unittest.TestCase):
@@ -66,6 +73,20 @@ class HyperFramesRenderTests(unittest.TestCase):
 
     def tearDown(self):
         self.temp.cleanup()
+
+    def _record_review(self, preview, frames):
+        packet = json.loads((self.job / "out" / "editorial-review-packet.json").read_text(encoding="utf-8"))
+        self.assertEqual(packet["render_inputs_sha256"], render_input_fingerprint(self.job))
+        return record_review(
+            self.job,
+            preview,
+            frames,
+            reviewer="QA tester",
+            global_checks={name: True for name in GLOBAL_CHECKS},
+            frame_checks={frame["id"]: {name: True for name in FRAME_CHECKS} for frame in frames},
+            expected_preview_sha256=packet["preview_sha256"],
+            expected_render_inputs_sha256=packet["render_inputs_sha256"],
+        )
 
     def fake_runner(self, command, **kwargs):
         self.commands.append((command, kwargs))
@@ -154,6 +175,23 @@ class HyperFramesRenderTests(unittest.TestCase):
         finally:
             shutil.rmtree(persona_dir, ignore_errors=True)
 
+    def test_preview_discards_output_when_render_inputs_change_during_render(self):
+        def mutating_runner(command, **kwargs):
+            result = self.fake_runner(command, **kwargs)
+            if command[0] != str(self.ffprobe) and command[1] == "render":
+                (self.job / "assets" / "shape.svg").write_text("<svg><path/></svg>", encoding="utf-8")
+                workspace_asset = Path(kwargs["cwd"]) / "assets" / "shape.svg"
+                self.assertFalse(workspace_asset.is_symlink())
+                self.assertEqual(workspace_asset.read_text(encoding="utf-8"), "<svg/>")
+            return result
+
+        result = render_job(
+            self.job, preview=True, runner=mutating_runner,
+            cli_path=self.cli, ffprobe_path=self.ffprobe,
+        )
+        self.assertNotEqual(result, 0)
+        self.assertFalse((self.job / "out" / "sample-9x16-preview.mp4").exists())
+
     def test_preview_reports_warnings_from_quality_checks(self):
         import io
         from contextlib import redirect_stdout
@@ -181,6 +219,85 @@ class HyperFramesRenderTests(unittest.TestCase):
     def test_final_render_requires_explicit_approval_before_cli_calls(self):
         result = render_job(
             self.job, approved=False, runner=self.fake_runner,
+            cli_path=self.cli, ffprobe_path=self.ffprobe,
+        )
+        self.assertNotEqual(result, 0)
+        self.assertEqual(self.commands, [])
+
+    def test_approved_final_render_requires_a_recorded_editorial_review(self):
+        result = render_job(
+            self.job, approved=True, runner=self.fake_runner,
+            cli_path=self.cli, ffprobe_path=self.ffprobe,
+        )
+        self.assertNotEqual(result, 0)
+        self.assertEqual(self.commands, [])
+
+    def test_preview_creates_a_phone_size_editorial_review_packet(self):
+        result = render_job(
+            self.job, preview=True, runner=self.fake_runner,
+            cli_path=self.cli, ffprobe_path=self.ffprobe,
+        )
+        self.assertEqual(result, 0)
+        packet = self.job / "out" / "editorial-review.html"
+        self.assertTrue(packet.is_file())
+        self.assertIn("max-width:360px", packet.read_text(encoding="utf-8"))
+
+    def test_valid_hash_bound_review_allows_an_approved_delivery_render(self):
+        self.assertEqual(
+            render_job(
+                self.job, preview=True, runner=self.fake_runner,
+                cli_path=self.cli, ffprobe_path=self.ffprobe,
+            ),
+            0,
+        )
+        preview = self.job / "out" / "sample-9x16-preview.mp4"
+        frames = storyboard_frames(self.job)
+        self._record_review(preview, frames)
+        self.commands.clear()
+        result = render_job(
+            self.job, approved=True, runner=self.fake_runner,
+            cli_path=self.cli, ffprobe_path=self.ffprobe,
+        )
+        self.assertEqual(result, 0)
+        self.assertTrue((self.job / "out" / "sample-9x16.mp4").is_file())
+        self.assertTrue(any(command[0][1] == "render" for command in self.commands))
+
+    def test_storyboard_change_after_signoff_blocks_delivery_before_cli_calls(self):
+        self.assertEqual(
+            render_job(
+                self.job, preview=True, runner=self.fake_runner,
+                cli_path=self.cli, ffprobe_path=self.ffprobe,
+            ),
+            0,
+        )
+        preview = self.job / "out" / "sample-9x16-preview.mp4"
+        frames = storyboard_frames(self.job)
+        self._record_review(preview, frames)
+        storyboard = self.job / "STORYBOARD.md"
+        storyboard.write_text(storyboard.read_text(encoding="utf-8").replace("A specific action", "A different action"), encoding="utf-8")
+        self.commands.clear()
+        result = render_job(
+            self.job, approved=True, runner=self.fake_runner,
+            cli_path=self.cli, ffprobe_path=self.ffprobe,
+        )
+        self.assertNotEqual(result, 0)
+        self.assertEqual(self.commands, [])
+
+    def test_stale_review_blocks_delivery_before_cli_calls(self):
+        self.assertEqual(
+            render_job(
+                self.job, preview=True, runner=self.fake_runner,
+                cli_path=self.cli, ffprobe_path=self.ffprobe,
+            ),
+            0,
+        )
+        preview = self.job / "out" / "sample-9x16-preview.mp4"
+        frames = storyboard_frames(self.job)
+        self._record_review(preview, frames)
+        preview.write_bytes(b"changed after review")
+        self.commands.clear()
+        result = render_job(
+            self.job, approved=True, runner=self.fake_runner,
             cli_path=self.cli, ffprobe_path=self.ffprobe,
         )
         self.assertNotEqual(result, 0)
